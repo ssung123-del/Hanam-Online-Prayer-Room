@@ -240,7 +240,7 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
             />
             <div className="flex items-baseline gap-1.5">
               <span className="text-sm font-bold">
-                {isPrayed ? '기도했습니다' : '기되하기'}
+                {isPrayed ? '기도했습니다' : '기도하기'}
               </span>
               <span className={`text-xs font-medium ${isPrayed ? 'text-rose-400' : 'text-gray-400'}`}>
                 {currentPrayer.prayed_count || 0}
