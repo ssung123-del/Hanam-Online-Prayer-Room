@@ -135,8 +135,8 @@ const PrayerForm: React.FC<PrayerFormProps> = ({ onSuccess }) => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100/80 text-amber-600 rounded-full mb-3 ring-4 ring-amber-50">
             <AlertCircle size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">이미 등록된 기도가 있어요</h2>
-          <p className="text-lg text-gray-500 font-medium">
+          <h2 className="text-3xl font-bold text-gray-900">이미 등록된 기도가 있어요</h2>
+          <p className="text-xl text-gray-600 font-medium">
             {conflictData.new.is_public ? "'전체 공개'" : "'교역자만 보기'"}로<br />
             접수된 기도 제목이 있습니다.<br />
             어떤 내용으로 저장할까요?
@@ -156,7 +156,7 @@ const PrayerForm: React.FC<PrayerFormProps> = ({ onSuccess }) => {
                 {new Date(conflictData.existing.created_at || '').toLocaleDateString()} 작성
               </span>
             </div>
-            <p className="text-xl text-gray-600 font-serif leading-relaxed line-clamp-2 group-hover:text-gray-900 transition-colors">
+            <p className="text-xl text-gray-700 font-sans font-medium leading-relaxed line-clamp-2 group-hover:text-gray-900 transition-colors">
               "{conflictData.existing.content}"
             </p>
             <div className="mt-4 flex items-center text-gray-400 font-bold group-hover:text-gray-600 transition-colors">
@@ -175,7 +175,7 @@ const PrayerForm: React.FC<PrayerFormProps> = ({ onSuccess }) => {
               <span className="bg-indigo-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-sm">새로운 내용</span>
               <span className="text-indigo-600 text-sm font-bold">지금 작성함</span>
             </div>
-            <p className="text-xl text-gray-800 font-serif font-medium leading-relaxed relative">
+            <p className="text-xl text-gray-900 font-sans font-medium leading-relaxed relative">
               "{conflictData.new.content}"
             </p>
             <div className="mt-4 flex items-center text-indigo-600 font-bold relative">
