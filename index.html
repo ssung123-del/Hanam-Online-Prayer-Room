@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>하남교구 온라인 기도실</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+              display: ['Noto Serif KR', 'serif'],
+              brush: ['Nanum Brush Script', 'cursive'],
+            },
+            colors: {
+              ios: {
+                bg: '#F5F5F7',
+                card: 'rgba(255, 255, 255, 0.8)',
+                blue: '#007AFF',
+                gray: '#8E8E93',
+              },
+              chapel: {
+                ink: '#1f2937',
+                stone: '#4b5563',
+                linen: '#f6f3ee',
+                cloud: '#ffffff',
+                indigo: '#3949ab',
+                coral: '#f59e8b',
+                sage: '#2f8a70',
+              },
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.5s ease-out',
+              'slide-up': 'slideUp 0.5s ease-out',
+              'pulse-soft': 'pulseSoft 3s ease-in-out infinite',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              slideUp: {
+                '0%': { transform: 'translateY(20px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' },
+              },
+              pulseSoft: {
+                '0%': { transform: 'scale(1)', opacity: '0.45' },
+                '50%': { transform: 'scale(1.08)', opacity: '0.7' },
+                '100%': { transform: 'scale(1)', opacity: '0.45' },
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      :root {
+        --app-bg: #f3ede4;
+        --panel-bg: #fcfaf6;
+        --surface: rgba(255, 255, 255, 0.9);
+        --surface-strong: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #5b6474;
+        --brand-primary: #3f51b5;
+        --brand-primary-soft: rgba(63, 81, 181, 0.12);
+        --brand-coral-soft: rgba(245, 158, 139, 0.18);
+        --brand-sage-soft: rgba(47, 138, 112, 0.14);
+        --ring-soft: rgba(63, 81, 181, 0.25);
+        --radius-xl: 2rem;
+        --radius-2xl: 2.4rem;
+        --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+        --ease-snappy: cubic-bezier(0.32, 0.72, 0, 1);
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background:
+          radial-gradient(1200px 620px at 12% -12%, rgba(99, 102, 241, 0.18), transparent 54%),
+          radial-gradient(840px 420px at 86% 0%, rgba(245, 158, 139, 0.22), transparent 60%),
+          linear-gradient(180deg, #f7f2e8 0%, #f3ece1 45%, #efe7db 100%);
+        font-family: 'Pretendard', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        color: var(--text-main);
+        min-height: 100vh;
+        text-size-adjust: 100%;
+      }
+
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+        background-size: 44px 44px;
+        opacity: 0.45;
+        z-index: 0;
+      }
+
+      .glass-card {
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.94), rgba(252, 249, 244, 0.88));
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        box-shadow:
+          0 20px 45px rgba(28, 36, 71, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      }
+
+      .interactive-card {
+        transition:
+          transform 0.28s var(--ease-soft),
+          box-shadow 0.28s var(--ease-soft),
+          border-color 0.2s var(--ease-snappy),
+          background-color 0.2s var(--ease-snappy);
+      }
+
+      .interactive-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .tap-target {
+        min-height: 2.85rem;
+        touch-action: manipulation;
+      }
+
+      .press-feedback {
+        transition: transform 0.14s var(--ease-snappy);
+      }
+
+      .press-feedback:active {
+        transform: scale(0.98);
+      }
+
+      .soft-card {
+        background: var(--surface);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        border-radius: var(--radius-xl);
+        box-shadow: 0 16px 30px rgba(28, 36, 71, 0.08);
+      }
+
+      .focus-ring:focus-visible {
+        outline: 3px solid var(--ring-soft);
+        outline-offset: 2px;
+      }
+
+      .input-field {
+        background: var(--surface-strong);
+        border: 1px solid #dde3ee;
+        transition:
+          border-color 0.2s var(--ease-snappy),
+          box-shadow 0.2s var(--ease-snappy),
+          background-color 0.2s var(--ease-snappy);
+      }
+
+      .input-field:focus {
+        background: #fff;
+        border-color: #6f82d6;
+        outline: none;
+        box-shadow: 0 0 0 5px rgba(111, 130, 214, 0.14);
+      }
+
+      .section-kicker {
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: #6b7280;
+      }
+
+      .scroll-surface {
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+      }
+
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      button,
+      [role='button'] {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.91.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
