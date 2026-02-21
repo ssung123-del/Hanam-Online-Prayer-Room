@@ -109,13 +109,14 @@
       }
 
       .glass-card {
-        background: linear-gradient(160deg, rgba(255, 255, 255, 0.94), rgba(252, 249, 244, 0.88));
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(252, 249, 244, 0.92));
         backdrop-filter: blur(18px);
         -webkit-backdrop-filter: blur(18px);
-        border: 1px solid rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.82);
+        /* 모바일에서 어색한 줄 방지: inset shadow 밝기 상향, 외부 그림자 약화 */
         box-shadow:
-          0 20px 45px rgba(28, 36, 71, 0.08),
-          inset 0 1px 0 rgba(255, 255, 255, 0.85);
+          0 8px 24px rgba(28, 36, 71, 0.04),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95);
       }
 
       .interactive-card {

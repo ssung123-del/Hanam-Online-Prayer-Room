@@ -194,26 +194,43 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
         <div className="absolute top-6 left-8 text-7xl text-indigo-100/90 font-display leading-none select-none -z-10">“</div>
         <div className="absolute -top-14 -right-8 w-36 h-36 bg-indigo-200/45 rounded-full blur-3xl -z-10" />
 
-        <div className="flex justify-between items-center mb-6 border-b border-gray-100/80 pb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-100 to-white flex items-center justify-center border border-indigo-50 shadow-sm">
-              <span className="text-indigo-600 font-bold text-base">
-                {currentPrayer.name.slice(0, 1)}
-              </span>
+        {/* 이름/날짜 헤더 — 모바일에서 줄바꿈 방지를 위해 2줄 구성 */}
+        <div className="mb-6 border-b border-gray-100/80 pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-100 to-white flex items-center justify-center border border-indigo-50 shadow-sm shrink-0">
+                <span className="text-indigo-600 font-bold text-base">
+                  {currentPrayer.name.slice(0, 1)}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold text-[1.55rem] text-[#263451] tracking-tight">
+                  {currentPrayer.name}
+                </span>
+                <span className="text-lg font-normal text-[#667085] ml-1">님의 기도제목</span>
+              </div>
             </div>
-            <span className="font-bold text-[1.72rem] text-[#263451] tracking-tight">
-              {currentPrayer.name} <span className="text-xl font-normal text-[#667085]">님의 기도제목</span>
+            {/* 날짜 — whitespace-nowrap으로 줄바꿈 완전 차단 */}
+            <span className="text-sm font-medium text-[#707b8f] bg-gray-50 px-2.5 py-1 rounded-md whitespace-nowrap shrink-0 ml-2">
+              {(() => {
+                const d = new Date(currentPrayer.created_at || Date.now());
+                return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
+              })()}
             </span>
           </div>
-          <span className="text-sm font-medium text-[#707b8f] bg-gray-50 px-2.5 py-1 rounded-md">
-            {new Date(currentPrayer.created_at || Date.now()).toLocaleDateString().slice(0, -1)}
-          </span>
         </div>
 
-        <div className="scroll-surface flex-1 overflow-y-auto scrollbar-hide px-1">
-          <p className="text-2xl md:text-3xl text-[#273142] leading-relaxed font-sans font-medium break-keep whitespace-pre-wrap tracking-tight">
-            {currentPrayer.content}
-          </p>
+        {/* 기도 내용 스크롤 영역 — 상/하단 페이드 마스크로 가독성 향상 */}
+        <div className="relative flex-1 min-h-0">
+          <div className="scroll-surface h-full overflow-y-auto scrollbar-hide px-1">
+            <p className="text-2xl md:text-3xl text-[#273142] leading-relaxed font-sans font-medium break-keep whitespace-pre-wrap tracking-tight py-1">
+              {currentPrayer.content}
+            </p>
+          </div>
+          {/* 상단 페이드 */}
+          <div className="pointer-events-none absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-white/60 to-transparent" />
+          {/* 하단 페이드 */}
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/80 to-transparent" />
         </div>
 
         <div className="absolute bottom-32 right-8 text-7xl text-indigo-100/90 font-display leading-none select-none -z-10 rotate-180">“</div>
