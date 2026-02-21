@@ -189,7 +189,7 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
 
       <div
         key={fadeKey}
-        className="glass-card p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-white/80 flex-1 flex flex-col relative overflow-hidden animate-slide-up mb-6 group ring-1 ring-white/60"
+        className="glass-card p-6 md:p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-white/80 flex-1 flex flex-col relative overflow-hidden animate-slide-up mb-6 group ring-1 ring-white/60"
       >
         <div className="absolute top-6 left-8 text-7xl text-indigo-100/90 font-display leading-none select-none -z-10">“</div>
         <div className="absolute -top-14 -right-8 w-36 h-36 bg-indigo-200/45 rounded-full blur-3xl -z-10" />
@@ -223,7 +223,7 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
         {/* 기도 내용 스크롤 영역 — 상/하단 페이드 마스크로 가독성 향상 */}
         <div className="relative flex-1 min-h-0">
           <div className="scroll-surface h-full overflow-y-auto scrollbar-hide px-1">
-            <p className="text-2xl md:text-3xl text-[#273142] leading-relaxed font-sans font-medium break-keep whitespace-pre-wrap tracking-tight py-1">
+            <p className="text-xl md:text-2xl text-[#273142] leading-relaxed font-sans font-medium break-keep whitespace-pre-wrap tracking-tight py-1">
               {currentPrayer.content}
             </p>
           </div>
