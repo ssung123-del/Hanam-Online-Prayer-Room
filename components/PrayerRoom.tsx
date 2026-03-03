@@ -67,13 +67,8 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
     fetchPrayers();
   }, []);
 
-  // 기도 슬라이드가 바뀔 때:
-  // 1. 이미 "기도했습니다"를 눌렀는지 확인
-  // 2. 기도 내용 스크롤 + Layout 외부 스크롤 모두 최상단으로 초기화
-  //
-  // 왜 useEffect: key={fadeKey}로 DOM이 재생성되므로, 렌더링 완료 후에
-  // 새로운 DOM 요소를 대상으로 스크롤을 초기화해야 정상 동작함.
-  // (handleNext에서 동기적으로 호출하면 이미 파괴될 이전 DOM 요소에 적용되어 무효)
+  // 기도 슬라이드가 바뀔 때 해당 기도에 대해 이미 "기도했습니다"를 눌렀는지 확인
+  // 왜 prayers도 의존성: prayers 배열이 바뀌면(기도 카운트 갱신 등) 최신 데이터로 재검사
   useEffect(() => {
     if (prayers.length > 0 && currentIndex < prayers.length) {
       const currentPrayer = prayers[currentIndex];
@@ -81,20 +76,23 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
       const hasPrayed = localStorage.getItem(storageKey) === 'true';
       setIsPrayed(hasPrayed);
     }
+  }, [currentIndex, prayers]);
 
+  // 스크롤 초기화: currentIndex가 바뀔 때**만** 실행
+  // 왜 분리: prayers가 바뀔 때(기도하기 버튼 클릭 → prayed_count 갱신)는
+  //         스크롤이 초기화되면 안 됨 (사용자가 읽던 위치 유지)
+  useEffect(() => {
     // 기도 내용 내부 스크롤 초기화
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
 
     // Layout의 <main> 외부 스크롤 컨테이너도 최상단으로
-    // 왜: 모바일에서 "다음기도 보기" 버튼까지 스크롤한 상태이면,
-    //     다음 기도가 화면 하단에 맞춰진 채로 보이는 문제 해결
     const mainEl = document.querySelector('main');
     if (mainEl) {
       mainEl.scrollTop = 0;
     }
-  }, [currentIndex, prayers]);
+  }, [currentIndex]);
 
   const handleNext = () => {
     setFadeKey(prev => prev + 1);
