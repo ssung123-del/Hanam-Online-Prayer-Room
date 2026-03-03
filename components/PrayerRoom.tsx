@@ -41,16 +41,6 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
     return shuffled;
   }, []);
 
-  /**
-   * 스크롤 영역을 최상단으로 초기화하는 헬퍼
-   * 왜 분리: handleNext, "처음부터 다시 보기" 등 여러 곳에서 재사용
-   */
-  const resetScroll = useCallback(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = 0;
-    }
-  }, []);
-
   const fetchPrayers = async () => {
     setLoading(true);
     try {
@@ -77,7 +67,13 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
     fetchPrayers();
   }, []);
 
-  // 기도 슬라이드가 바뀔 때 해당 기도에 대해 이미 "기도했습니다"를 눌렀는지 확인
+  // 기도 슬라이드가 바뀔 때:
+  // 1. 이미 "기도했습니다"를 눌렀는지 확인
+  // 2. 기도 내용 스크롤 + Layout 외부 스크롤 모두 최상단으로 초기화
+  //
+  // 왜 useEffect: key={fadeKey}로 DOM이 재생성되므로, 렌더링 완료 후에
+  // 새로운 DOM 요소를 대상으로 스크롤을 초기화해야 정상 동작함.
+  // (handleNext에서 동기적으로 호출하면 이미 파괴될 이전 DOM 요소에 적용되어 무효)
   useEffect(() => {
     if (prayers.length > 0 && currentIndex < prayers.length) {
       const currentPrayer = prayers[currentIndex];
@@ -85,13 +81,24 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
       const hasPrayed = localStorage.getItem(storageKey) === 'true';
       setIsPrayed(hasPrayed);
     }
+
+    // 기도 내용 내부 스크롤 초기화
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+
+    // Layout의 <main> 외부 스크롤 컨테이너도 최상단으로
+    // 왜: 모바일에서 "다음기도 보기" 버튼까지 스크롤한 상태이면,
+    //     다음 기도가 화면 하단에 맞춰진 채로 보이는 문제 해결
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      mainEl.scrollTop = 0;
+    }
   }, [currentIndex, prayers]);
 
   const handleNext = () => {
     setFadeKey(prev => prev + 1);
     setCurrentIndex(prev => prev + 1);
-    // 다음 기도로 넘길 때 스크롤 위치를 최상단으로 초기화
-    resetScroll();
   };
 
   const handlePrayClick = async () => {
@@ -196,8 +203,7 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
             onClick={() => {
               setCurrentIndex(0);
               setFadeKey(prev => prev + 1);
-              // 처음부터 다시 볼 때도 스크롤 위치 초기화
-              resetScroll();
+              // 스크롤 초기화는 currentIndex 변경 시 useEffect에서 자동 처리
             }}
             className="focus-ring tap-target press-feedback w-full bg-white text-[#263451] text-xl font-bold py-5 rounded-[1.6rem] shadow-sm border-2 border-gray-200 flex items-center justify-center space-x-3 active:bg-gray-50 transition-colors"
           >
