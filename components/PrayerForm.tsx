@@ -16,7 +16,7 @@ const PrayerForm: React.FC<PrayerFormProps> = ({ onSuccess }) => {
     is_public: true,
   });
 
-  // State to handle duplicate conflict
+  // 중복 기도제목 충돌 처리용 상태
   const [conflictData, setConflictData] = useState<{ existing: Prayer, new: Prayer } | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -49,10 +49,17 @@ const PrayerForm: React.FC<PrayerFormProps> = ({ onSuccess }) => {
       return;
     }
 
+    // 전화번호 유효성 검증: 하이픈 제거 후 숫자 10~11자리인지 확인
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      alert("전화번호를 올바르게 입력해주세요.\n예: 010-1234-5678");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // 1. Check for duplicates
+      // 1. 동일 이름+전화번호로 이미 등록된 기도제목이 있는지 확인
       const { data: existingData, error: searchError } = await supabase
         .from('prayers')
         .select('*')
@@ -62,7 +69,7 @@ const PrayerForm: React.FC<PrayerFormProps> = ({ onSuccess }) => {
 
       if (searchError) throw searchError;
 
-      // If duplicate found
+      // 중복 발견 시 충돌 해결 화면으로 전환
       if (existingData && existingData.length > 0) {
         setConflictData({
           existing: existingData[0] as Prayer,
@@ -72,7 +79,7 @@ const PrayerForm: React.FC<PrayerFormProps> = ({ onSuccess }) => {
         return;
       }
 
-      // 2. No duplicate, insert new
+      // 2. 중복 없음 → 새 기도제목 등록
       const { error: insertError } = await supabase
         .from('prayers')
         .insert([{
@@ -87,9 +94,11 @@ const PrayerForm: React.FC<PrayerFormProps> = ({ onSuccess }) => {
       alert("기도 제목이 성공적으로 전달되었습니다.");
       onSuccess();
 
-    } catch (err: any) {
+    } catch (err: unknown) {
+      // 왜 unknown: any 대신 사용하여 타입 안전성 확보
       console.error(err);
-      alert(`오류가 발생했습니다: ${err.message || 'Unknown error'}`);
+      // 왜 일반 메시지: 기술적 에러(err.message)를 그대로 노출하면 사용자 혼란 유발
+      alert("기도제목 전송 중 문제가 발생했습니다.\n잠시 후 다시 시도해주세요.");
       setLoading(false);
     }
   };
@@ -119,9 +128,9 @@ const PrayerForm: React.FC<PrayerFormProps> = ({ onSuccess }) => {
 
       alert("새로운 기도 제목으로 변경되었습니다.");
       onSuccess();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      alert("업데이트 중 오류가 발생했습니다.");
+      alert("업데이트 중 문제가 발생했습니다.\n잠시 후 다시 시도해주세요.");
     } finally {
       setLoading(false);
     }

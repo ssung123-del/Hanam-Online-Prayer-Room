@@ -1,7 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Prayer } from '../types';
 import { Heart, Loader2, RefreshCw, Edit3, MessageSquarePlus, ChevronRight } from 'lucide-react';
+
+/**
+ * 날짜를 'YYYY.M.D' 형식으로 포맷팅하는 유틸 함수
+ * 왜: 인라인 IIFE 대신 분리하여 가독성과 재사용성 향상
+ */
+const formatDate = (dateString?: string): string => {
+  const d = new Date(dateString || Date.now());
+  return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
+};
 
 interface PrayerRoomProps {
   onWrite: () => void;
@@ -12,21 +21,35 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
   const [prayers, setPrayers] = useState<Prayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [fadeKey, setFadeKey] = useState(0); // Used to trigger CSS animation reset
+  const [fadeKey, setFadeKey] = useState(0); // CSS 애니메이션 재실행용 키
 
-  // State for the "I Prayed" feature
+  // 기도 내용 스크롤 영역 참조 — 다음 기도로 넘길 때 최상단으로 초기화하기 위해 사용
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // "기도했습니다" 기능 관련 상태
   const [isPrayed, setIsPrayed] = useState(false);
   const [isUpdatingPrayer, setIsUpdatingPrayer] = useState(false);
 
   // Fisher-Yates 셔플: 배열을 무작위로 섞어주는 알고리즘
-  const shuffleArray = <T,>(array: T[]): T[] => {
+  // 왜 useCallback: 매 렌더링마다 함수가 재생성되는 것을 방지
+  const shuffleArray = useCallback(<T,>(array: T[]): T[] => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
-  };
+  }, []);
+
+  /**
+   * 스크롤 영역을 최상단으로 초기화하는 헬퍼
+   * 왜 분리: handleNext, "처음부터 다시 보기" 등 여러 곳에서 재사용
+   */
+  const resetScroll = useCallback(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, []);
 
   const fetchPrayers = async () => {
     setLoading(true);
@@ -54,7 +77,7 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
     fetchPrayers();
   }, []);
 
-  // Check if current prayer is already prayed for when slide changes
+  // 기도 슬라이드가 바뀔 때 해당 기도에 대해 이미 "기도했습니다"를 눌렀는지 확인
   useEffect(() => {
     if (prayers.length > 0 && currentIndex < prayers.length) {
       const currentPrayer = prayers[currentIndex];
@@ -67,6 +90,8 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
   const handleNext = () => {
     setFadeKey(prev => prev + 1);
     setCurrentIndex(prev => prev + 1);
+    // 다음 기도로 넘길 때 스크롤 위치를 최상단으로 초기화
+    resetScroll();
   };
 
   const handlePrayClick = async () => {
@@ -76,15 +101,15 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
     const prayerId = currentPrayer.id!;
     const storageKey = `prayed_${prayerId}`;
 
-    // Optimistic UI Update (화면 먼저 갱신)
+    // 낙관적 UI 업데이트: 서버 응답 전에 화면을 먼저 갱신하여 즉각적인 피드백 제공
     const newStatus = !isPrayed;
     const originalCount = currentPrayer.prayed_count || 0;
     const newCount = newStatus ? originalCount + 1 : Math.max(0, originalCount - 1);
 
     setIsPrayed(newStatus);
-    setIsUpdatingPrayer(true); // Prevent double clicking
+    setIsUpdatingPrayer(true); // 중복 클릭 방지
 
-    // Update Local State array
+    // 로컬 상태 배열 업데이트
     const updatedPrayers = [...prayers];
     updatedPrayers[currentIndex] = {
       ...currentPrayer,
@@ -92,14 +117,14 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
     };
     setPrayers(updatedPrayers);
 
-    // Local Storage Update
+    // 로컬 스토리지 업데이트 (브라우저 재방문 시에도 기도 여부 유지)
     if (newStatus) {
       localStorage.setItem(storageKey, 'true');
     } else {
       localStorage.removeItem(storageKey);
     }
 
-    // Backend Update
+    // 백엔드(Supabase) 업데이트
     try {
       const { error } = await supabase
         .from('prayers')
@@ -108,8 +133,9 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
 
       if (error) throw error;
     } catch (err) {
-      console.error("Failed to update prayer count", err);
-      // Rollback on error (Silent fail usually okay for this feature, but good to know)
+      console.error('기도 카운트 업데이트 실패:', err);
+      // 왜 롤백: 서버 저장 실패 시 UI만 바뀌고 DB는 그대로이면 불일치 발생
+      // → 원래 상태로 되돌려 사용자에게 정확한 정보 표시
       setIsPrayed(!newStatus);
       updatedPrayers[currentIndex] = { ...currentPrayer, prayed_count: originalCount };
       setPrayers(updatedPrayers);
@@ -170,6 +196,8 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
             onClick={() => {
               setCurrentIndex(0);
               setFadeKey(prev => prev + 1);
+              // 처음부터 다시 볼 때도 스크롤 위치 초기화
+              resetScroll();
             }}
             className="focus-ring tap-target press-feedback w-full bg-white text-[#263451] text-xl font-bold py-5 rounded-[1.6rem] shadow-sm border-2 border-gray-200 flex items-center justify-center space-x-3 active:bg-gray-50 transition-colors"
           >
@@ -224,17 +252,14 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
             </div>
             {/* 날짜 — whitespace-nowrap으로 줄바꿈 완전 차단 */}
             <span className="text-sm font-medium text-[#707b8f] bg-gray-50 px-2.5 py-1 rounded-md whitespace-nowrap shrink-0 ml-2">
-              {(() => {
-                const d = new Date(currentPrayer.created_at || Date.now());
-                return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
-              })()}
+              {formatDate(currentPrayer.created_at)}
             </span>
           </div>
         </div>
 
         {/* 기도 내용 스크롤 영역 — 상/하단 페이드 마스크로 가독성 향상 */}
         <div className="relative flex-1 min-h-0">
-          <div className="scroll-surface h-full overflow-y-auto scrollbar-hide px-1">
+          <div ref={scrollRef} className="scroll-surface h-full overflow-y-auto scrollbar-hide px-1">
             <p className="text-2xl md:text-3xl text-[#273142] leading-relaxed font-sans font-medium break-keep whitespace-pre-wrap tracking-tight py-1">
               {currentPrayer.content}
             </p>
