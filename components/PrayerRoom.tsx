@@ -12,6 +12,20 @@ const formatDate = (dateString?: string): string => {
   return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
 };
 
+/**
+ * 오늘 날짜를 'YYYY-MM-DD' 형식으로 반환하는 유틸 함수
+ * 왜: 기도하기 상태의 매일 자정 초기화를 위해 사용
+ * localStorage에 'true' 대신 오늘 날짜를 저장하고,
+ * 다음 날 확인 시 날짜가 다르면 자동으로 미기도 상태로 리셋
+ */
+const getTodayKey = (): string => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 interface PrayerRoomProps {
   onWrite: () => void;
   onReset: () => void;
@@ -73,7 +87,10 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
     if (prayers.length > 0 && currentIndex < prayers.length) {
       const currentPrayer = prayers[currentIndex];
       const storageKey = `prayed_${currentPrayer.id}`;
-      const hasPrayed = localStorage.getItem(storageKey) === 'true';
+      // 저장된 날짜가 오늘과 같을 때만 "기도했습니다" 상태 유지
+      // 자정이 지나면 날짜가 달라져 자동으로 초기화됨
+      const storedDate = localStorage.getItem(storageKey);
+      const hasPrayed = storedDate === getTodayKey();
       setIsPrayed(hasPrayed);
     }
   }, [currentIndex, prayers]);
@@ -122,9 +139,11 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
     };
     setPrayers(updatedPrayers);
 
-    // 로컬 스토리지 업데이트 (브라우저 재방문 시에도 기도 여부 유지)
+    // 로컬 스토리지 업데이트
+    // 왜 날짜 저장: 'true' 대신 오늘 날짜를 저장하면
+    //              자정 이후 날짜가 달라져 자동으로 기도 상태 초기화
     if (newStatus) {
-      localStorage.setItem(storageKey, 'true');
+      localStorage.setItem(storageKey, getTodayKey());
     } else {
       localStorage.removeItem(storageKey);
     }
