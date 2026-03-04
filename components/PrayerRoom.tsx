@@ -14,9 +14,9 @@ const formatDate = (dateString?: string): string => {
 
 /**
  * 오늘 날짜를 'YYYY-MM-DD' 형식으로 반환하는 유틸 함수
- * 왜: 기도하기 상태의 매일 자정 초기화를 위해 사용
+ * 왜: 기도하기 상태 + 기도 카운트의 매일 자정 초기화를 위해 사용
  * localStorage에 'true' 대신 오늘 날짜를 저장하고,
- * 다음 날 확인 시 날짜가 다르면 자동으로 미기도 상태로 리셋
+ * 다음 날 확인 시 날짜가 다르면 자동으로 미기도 상태 및 카운트 리셋
  */
 const getTodayKey = (): string => {
   const d = new Date();
@@ -24,6 +24,19 @@ const getTodayKey = (): string => {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+/**
+ * 기도제목의 일일 카운트를 반환하는 헬퍼 함수
+ * 왜: count_date가 오늘이 아닌 경우(자정 지남) → 0으로 표시
+ *     count_date가 오늘인 경우 → daily_prayed_count 그대로 표시
+ */
+const getDailyCount = (prayer: Prayer): number => {
+  if (prayer.count_date === getTodayKey()) {
+    return prayer.daily_prayed_count || 0;
+  }
+  // 날짜가 다르면 아직 DB에 리셋되지 않았더라도 프론트에서 0으로 표시
+  return 0;
 };
 
 interface PrayerRoomProps {
@@ -65,8 +78,34 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
 
       if (error) throw error;
 
+      const today = getTodayKey();
+
+      // 날짜가 지난 기도제목의 daily_prayed_count를 DB에서 일괄 초기화
+      // 왜: 사용자가 앱을 열 때 자정 이후 첫 접속이면 DB도 정리해줌
+      const staleItems = (data || []).filter(
+        (p: Prayer) => p.count_date && p.count_date !== today && (p.daily_prayed_count || 0) > 0
+      );
+
+      if (staleItems.length > 0) {
+        // 날짜가 지난 항목들의 daily_prayed_count를 0으로, count_date를 오늘로 갱신
+        const resetPromises = staleItems.map((p: Prayer) =>
+          supabase
+            .from('prayers')
+            .update({ daily_prayed_count: 0, count_date: today })
+            .eq('id', p.id)
+        );
+        await Promise.all(resetPromises);
+      }
+
+      // 프론트엔드 데이터도 초기화 반영
+      const normalizedData = (data || []).map((p: Prayer) => ({
+        ...p,
+        daily_prayed_count: p.count_date === today ? (p.daily_prayed_count || 0) : 0,
+        count_date: today,
+      }));
+
       // 가져온 기도제목을 랜덤 순서로 셔플하여 매번 다른 순서로 보이게 함
-      const shuffled = shuffleArray(data || []);
+      const shuffled = shuffleArray(normalizedData);
       setPrayers(shuffled);
       setCurrentIndex(0);
     } catch (err) {
@@ -122,11 +161,17 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
     const currentPrayer = prayers[currentIndex];
     const prayerId = currentPrayer.id!;
     const storageKey = `prayed_${prayerId}`;
+    const today = getTodayKey();
+
+    // 날짜가 바뀌었는지 확인 → 자정 넘었으면 카운트 리셋
+    const isNewDay = currentPrayer.count_date !== today;
+    const currentDailyCount = isNewDay ? 0 : (currentPrayer.daily_prayed_count || 0);
 
     // 낙관적 UI 업데이트: 서버 응답 전에 화면을 먼저 갱신하여 즉각적인 피드백 제공
     const newStatus = !isPrayed;
-    const originalCount = currentPrayer.prayed_count || 0;
-    const newCount = newStatus ? originalCount + 1 : Math.max(0, originalCount - 1);
+    const originalTotalCount = currentPrayer.prayed_count || 0;
+    const newTotalCount = newStatus ? originalTotalCount + 1 : Math.max(0, originalTotalCount - 1);
+    const newDailyCount = newStatus ? currentDailyCount + 1 : Math.max(0, currentDailyCount - 1);
 
     setIsPrayed(newStatus);
     setIsUpdatingPrayer(true); // 중복 클릭 방지
@@ -135,7 +180,9 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
     const updatedPrayers = [...prayers];
     updatedPrayers[currentIndex] = {
       ...currentPrayer,
-      prayed_count: newCount
+      prayed_count: newTotalCount,
+      daily_prayed_count: newDailyCount,
+      count_date: today,
     };
     setPrayers(updatedPrayers);
 
@@ -148,11 +195,15 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
       localStorage.removeItem(storageKey);
     }
 
-    // 백엔드(Supabase) 업데이트
+    // 백엔드(Supabase) 업데이트 — 누적 + 일일 카운트 모두 갱신
     try {
       const { error } = await supabase
         .from('prayers')
-        .update({ prayed_count: newCount })
+        .update({
+          prayed_count: newTotalCount,
+          daily_prayed_count: newDailyCount,
+          count_date: today,
+        })
         .eq('id', prayerId);
 
       if (error) throw error;
@@ -161,7 +212,12 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
       // 왜 롤백: 서버 저장 실패 시 UI만 바뀌고 DB는 그대로이면 불일치 발생
       // → 원래 상태로 되돌려 사용자에게 정확한 정보 표시
       setIsPrayed(!newStatus);
-      updatedPrayers[currentIndex] = { ...currentPrayer, prayed_count: originalCount };
+      updatedPrayers[currentIndex] = {
+        ...currentPrayer,
+        prayed_count: originalTotalCount,
+        daily_prayed_count: currentDailyCount,
+        count_date: currentPrayer.count_date,
+      };
       setPrayers(updatedPrayers);
     } finally {
       setIsUpdatingPrayer(false);
@@ -316,7 +372,7 @@ const PrayerRoom: React.FC<PrayerRoomProps> = ({ onWrite, onReset }) => {
                 {isPrayed ? '기도했습니다' : '기도하기'}
               </span>
               <span className={`text-sm font-medium ${isPrayed ? 'text-rose-400' : 'text-gray-400'}`}>
-                {currentPrayer.prayed_count || 0}
+                {getDailyCount(currentPrayer)}
               </span>
             </div>
           </button>

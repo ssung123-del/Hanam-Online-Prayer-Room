@@ -23,9 +23,15 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
  *   phone text not null,
  *   content text not null,
  *   is_public boolean default true,
- *   prayed_count integer default 0
+ *   prayed_count integer default 0,
+ *   daily_prayed_count integer default 0,
+ *   count_date date default current_date
  * );
  * 
  * -- Run this if you already created the table:
  * -- alter table public.prayers add column prayed_count integer default 0;
+ * 
+ * -- [일일 초기화 기능] 아래 SQL을 Supabase SQL Editor에서 실행하세요:
+ * -- alter table public.prayers add column daily_prayed_count integer default 0;
+ * -- alter table public.prayers add column count_date date default current_date;
  */
